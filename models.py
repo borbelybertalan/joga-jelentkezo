@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 from database import Base
 import datetime
+import uuid
 
 class User(Base):
     __tablename__ = "users"
@@ -20,7 +21,7 @@ class YogaClass(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String)
     start_time = Column(DateTime)
-    max_capacity = Column(Integer, default=10)
+    max_capacity = Column(Integer, default=15) 
     
     # Kapcsolat a foglalasokhoz
     bookings = relationship("Booking", back_populates="yoga_class")
@@ -32,6 +33,13 @@ class Booking(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     class_id = Column(Integer, ForeignKey("yoga_classes.id"))
     booking_time = Column(DateTime, default=datetime.datetime.utcnow)
+    
+    # ÚJ OSZLOPOK:
+    # Státusz: lehet "active", "waitlisted" vagy "cancelled"
+    status = Column(String, default="active") 
+    
+    # Egyedi azonosító a lemondáshoz, ami az e-mail linkbe kerül
+    cancel_token = Column(String, default=lambda: str(uuid.uuid4()), unique=True)
     
     # Visszautalas a szulo tablakra
     user = relationship("User", back_populates="bookings")

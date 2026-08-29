@@ -4,50 +4,61 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Oktatói Adminisztráció</title>
+    <!-- FullCalendar könyvtár betöltése -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* Kisebb kiegészítő stílusok kifejezetten az admin oldalhoz */
-        .admin-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 40px; margin-top: 30px; }
-        .box { background: #fdfdfd; padding: 25px; border-radius: 12px; border: 1px solid var(--border-color); }
-        .class-item { border-bottom: 1px solid var(--border-color); padding: 15px 0; }
-        .class-item:last-child { border-bottom: none; }
-        ul { padding-left: 20px; color: var(--text-muted); }
-        @media (max-width: 768px) { .admin-grid { grid-template-columns: 1fr; } }
+        /* Két extra stílus a törlés gombokhoz és a listához */
+        .admin-student-list { list-style-type: none; padding-left: 0; margin-top: 10px; }
+        .admin-student-list li { padding: 8px 0; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        .admin-student-list li:last-child { border-bottom: none; }
+        .btn-delete-small { background: none; border: none; color: #d9534f; cursor: pointer; text-decoration: underline; font-size: 0.9em; }
     </style>
 </head>
 <body>
-    <div class="container" style="max-width: 1200px;">
-        <h1>Oktatói Adminisztráció</h1>
+    <div class="container">
+        <h1>Oktatói Naptár</h1>
         
-        <div class="admin-grid">
-            <!-- Új óra kiírása űrlap -->
-            <div class="box">
-                <h2>Új óra meghirdetése</h2>
-                <div class="form-group">
-                    <label>Óra neve</label>
-                    <input type="text" id="new-title" placeholder="Pl. Kezdő Hatha Jóga" required>
-                </div>
-                <div class="form-group">
-                    <label>Időpont</label>
-                    <input type="datetime-local" id="new-time" required>
-                </div>
-                <div class="form-group">
-                    <label>Maximális létszám</label>
-                    <input type="number" id="new-capacity" value="10" min="1" required>
-                </div>
-                <button id="add-class-btn" class="btn-primary" style="width: 100%;">Meghirdetés</button>
-            </div>
+        <div style="margin-bottom: 20px; text-align: right;">
+            <button id="open-add-modal-btn" class="btn-primary">+ Új óra meghirdetése</button>
+        </div>
+        
+        <!-- Naptár konténer -->
+        <div id="calendar"></div>
+    </div>
 
-            <!-- Jövőbeli órák és jelentkezők -->
-            <div class="box">
-                <h2>Meghirdetett órák és résztvevők</h2>
-                <div id="classes-list">
-                    <!-- Ide tölti be a JavaScript az adatokat -->
-                    <p>Órák betöltése folyamatban...</p>
-                </div>
+    <!-- Új óra felugró ablak -->
+    <div id="add-class-modal" class="modal">
+        <div class="modal-content">
+            <h2>Új óra meghirdetése</h2>
+            <div class="form-group"><label>Óra neve</label><input type="text" id="new-title" required></div>
+            <div class="form-group"><label>Időpont</label><input type="datetime-local" id="new-time" required></div>
+            <div class="form-group"><label>Maximális létszám</label><input type="number" id="new-capacity" value="15" min="1" required></div>
+            <div class="modal-actions">
+                <button id="cancel-add-btn" class="btn-secondary">Mégsem</button>
+                <button id="submit-add-btn" class="btn-primary">Meghirdetés</button>
             </div>
         </div>
     </div>
+
+    <!-- Óra kezelése felugró ablak -->
+    <div id="manage-class-modal" class="modal">
+        <div class="modal-content">
+            <h2 id="manage-title">Óra részletei</h2>
+            <p id="manage-time" style="color: var(--accent-color); font-weight: 500; margin-top: -15px; margin-bottom: 20px;"></p>
+            
+            <div id="manage-students-container">
+                <!-- A JavaScript ide tölti be a listákat -->
+                <p>Jelentkezők betöltése...</p>
+            </div>
+            
+            <div class="modal-actions" style="justify-content: space-between; border-top: 1px solid var(--border-color); padding-top: 20px; margin-top: 20px;">
+                <button id="delete-class-btn" style="background: none; border: none; color: #d9534f; cursor: pointer; text-decoration: underline;">Teljes óra törlése</button>
+                <button id="close-manage-btn" class="btn-secondary">Bezárás</button>
+            </div>
+        </div>
+    </div>
+
     <script src="admin.js"></script>
 </body>
 </html>

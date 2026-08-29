@@ -68,7 +68,7 @@ h1 {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(44, 62, 45, 0.5); /* Sötétzöldes áttetsző overlay */
+    background-color: rgba(44, 62, 45, 0.5); 
     z-index: 1000;
     justify-content: center;
     align-items: center;
@@ -76,7 +76,6 @@ h1 {
     transition: opacity 0.3s ease;
 }
 
-/* Amikor az active osztály rajta van, láthatóvá válik */
 .modal.active {
     display: flex;
     opacity: 1;
@@ -94,7 +93,7 @@ h1 {
 }
 
 .modal.active .modal-content {
-    transform: translateY(0); /* Beúszik a helyére */
+    transform: translateY(0); 
 }
 
 .modal h2 {
@@ -176,10 +175,116 @@ h1 {
     color: var(--text-main);
 }
 
-/* --- RESZPONZIVITÁS --- */
+/* --- ADMIN OLDAL STÍLUSOK --- */
+.admin-container {
+    max-width: 1200px;
+}
+
+.admin-grid { 
+    display: grid; 
+    grid-template-columns: 1fr 2fr; 
+    gap: 40px; 
+    margin-top: 30px; 
+}
+
+.box { 
+    background: #fdfdfd; 
+    padding: 25px; 
+    border-radius: 12px; 
+    border: 1px solid var(--border-color); 
+}
+
+.class-item { 
+    border-bottom: 1px solid var(--border-color); 
+    padding: 15px 0; 
+}
+
+.class-item:last-child { 
+    border-bottom: none; 
+}
+
+.class-item ul { 
+    padding-left: 20px; 
+    color: var(--text-muted); 
+}
+
+.delete-btn { 
+    background: none; 
+    border: none; 
+    color: #d9534f; 
+    cursor: pointer; 
+    text-decoration: underline; 
+    margin-left: 10px; 
+}
+
+.delete-btn:hover { 
+    color: #c9302c; 
+}
+
+.delete-modal-overlay {
+    display: none; 
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%; 
+    background: rgba(0,0,0,0.5); 
+    z-index: 1000; 
+    align-items: center; 
+    justify-content: center;
+}
+
+.delete-modal-box {
+    background: white; 
+    padding: 30px; 
+    border-radius: 12px; 
+    text-align: center; 
+    max-width: 400px; 
+    width: 90%;
+}
+
+.delete-modal-title {
+    margin-top: 0; 
+    color: #d9534f;
+}
+
+.delete-modal-name {
+    color: #333; 
+    margin: 15px 0;
+}
+
+.delete-modal-actions {
+    margin-top: 25px; 
+    display: flex; 
+    gap: 15px; 
+    justify-content: center;
+}
+
+.btn-cancel-delete {
+    border: 1px solid #ccc; 
+    padding: 10px 20px; 
+    border-radius: 8px;
+}
+
+.btn-confirm-delete {
+    background: #d9534f; 
+    color: white; 
+    border: none; 
+    padding: 10px 20px; 
+    border-radius: 8px; 
+    cursor: pointer; 
+    font-weight: bold;
+}
+
+.btn-confirm-delete:hover {
+    background: #c9302c;
+}
+
+/* --- RESZPONZIVITÁS MINDEN OLDALRA --- */
 @media (max-width: 768px) {
     .container { padding: 20px; border-radius: 12px; }
     h1 { font-size: 1.6rem; margin-bottom: 25px; }
     .fc-toolbar { flex-direction: column; gap: 15px; }
     .fc-toolbar-title { font-size: 1.3rem !important; }
+    .admin-grid { grid-template-columns: 1fr; }
 }

@@ -59,7 +59,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
         
         if (bookingResponse.ok) {
-            alert('Sikeresen lefoglaltad az órát!');
+            // Itt beolvassuk a backend által küldött választ
+            const data = await bookingResponse.json(); 
+            // A hardkódolt szöveg helyett a backend üzenetét jelenítjük meg
+            alert(data.message); 
             location.reload(); // Frissíti az oldalt
         } else {
             const data = await bookingResponse.json();
