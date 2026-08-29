@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oktatói Adminisztráció</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Kisebb kiegészítő stílusok kifejezetten az admin oldalhoz */
+        .admin-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 40px; margin-top: 30px; }
+        .box { background: #fdfdfd; padding: 25px; border-radius: 12px; border: 1px solid var(--border-color); }
+        .class-item { border-bottom: 1px solid var(--border-color); padding: 15px 0; }
+        .class-item:last-child { border-bottom: none; }
+        ul { padding-left: 20px; color: var(--text-muted); }
+        @media (max-width: 768px) { .admin-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="container" style="max-width: 1200px;">
+        <h1>Oktatói Adminisztráció</h1>
+        
+        <div class="admin-grid">
+            <!-- Új óra kiírása űrlap -->
+            <div class="box">
+                <h2>Új óra meghirdetése</h2>
+                <div class="form-group">
+                    <label>Óra neve</label>
+                    <input type="text" id="new-title" placeholder="Pl. Kezdő Hatha Jóga" required>
+                </div>
+                <div class="form-group">
+                    <label>Időpont</label>
+                    <input type="datetime-local" id="new-time" required>
+                </div>
+                <div class="form-group">
+                    <label>Maximális létszám</label>
+                    <input type="number" id="new-capacity" value="10" min="1" required>
+                </div>
+                <button id="add-class-btn" class="btn-primary" style="width: 100%;">Meghirdetés</button>
+            </div>
+
+            <!-- Jövőbeli órák és jelentkezők -->
+            <div class="box">
+                <h2>Meghirdetett órák és résztvevők</h2>
+                <div id="classes-list">
+                    <!-- Ide tölti be a JavaScript az adatokat -->
+                    <p>Órák betöltése folyamatban...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="admin.js"></script>
+</body>
+</html>
