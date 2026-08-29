@@ -1,3 +1,4 @@
+*.db
 # Virtuális környezet
 venv/
 
