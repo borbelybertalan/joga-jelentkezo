@@ -1,0 +1,12 @@
+# Virtuális környezet
+venv/
+
+# Python gyorsítótár fájlok
+__pycache__/
+*.pyc
+
+# Környezeti változók (jelszavakhoz)
+.env
+
+# IDE fájlok
+.vscode/
