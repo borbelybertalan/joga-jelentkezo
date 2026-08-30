@@ -1,4 +1,5 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime, timedelta
@@ -6,6 +7,7 @@ from database import engine, SessionLocal, Base
 from fastapi.middleware.cors import CORSMiddleware
 import models
 import uuid
+import secrets
 
 # Táblák létrehozása, ha még nem léteznek
 Base.metadata.create_all(bind=engine)
@@ -20,6 +22,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+security = HTTPBasic()
+
+# Itt állíthatod be a keresztanyád belépési adatait
+ADMIN_USERNAME = "admin"
+ADMIN_PASSWORD = "titkosjelszo123" 
+
+def verify_admin(credentials: HTTPBasicCredentials = Depends(security)):
+    correct_username = secrets.compare_digest(credentials.username, ADMIN_USERNAME)
+    correct_password = secrets.compare_digest(credentials.password, ADMIN_PASSWORD)
+    if not (correct_username and correct_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Hibás felhasználónév vagy jelszó",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return credentials.username
 
 def get_db():
     db = SessionLocal()
@@ -49,7 +67,7 @@ def read_root():
     return {"message": "A jóga foglalási rendszer backendje sikeresen elindult!"}
 
 @app.post("/classes/")
-def create_class(yoga_class: ClassCreate, db: Session = Depends(get_db)):
+def create_class(yoga_class: ClassCreate, db: Session = Depends(get_db), admin: str = Depends(verify_admin)):
     new_class = models.YogaClass(
         title=yoga_class.title, 
         start_time=yoga_class.start_time, 
@@ -123,20 +141,15 @@ def create_booking(booking: BookingRequest, db: Session = Depends(get_db)):
         user_id=user.id, 
         class_id=booking.class_id,
         status=status
-        # A cancel_token-t az SQLAlchemy automatikusan generálja a lambdából
     )
     db.add(new_booking)
     db.commit()
-    
-    # KÉSŐBB: Itt kell meghívni az e-mail küldő függvényt a sikeres jelentkezéshez,
-    # beleágyazva a new_booking.cancel_token-t a lemondó linkbe!
 
     if status == "waitlisted":
         return {"message": "A létszám betelt, felkerültél a várólistára!", "status": status}
     
     return {"message": "Sikeres foglalás!", "status": status}
 
-# --- ÚJ VÉGPONT: LEMONDÁS (E-mailből érkező kattintás) ---
 @app.get("/cancel/{token}")
 def cancel_booking(token: str, db: Session = Depends(get_db)):
     booking = db.query(models.Booking).filter(models.Booking.cancel_token == token).first()
@@ -150,7 +163,6 @@ def cancel_booking(token: str, db: Session = Depends(get_db)):
     now = datetime.utcnow()
     time_until_class = yoga_class.start_time - now
     
-    # 4. SZABÁLY: 12 órával kezdés előtt lehet csak lemondani
     if time_until_class < timedelta(hours=12):
         raise HTTPException(status_code=400, detail="Az órát már nem lehet lemondani, kevesebb mint 12 óra van hátra a kezdésig.")
 
@@ -158,7 +170,6 @@ def cancel_booking(token: str, db: Session = Depends(get_db)):
     booking.status = "cancelled"
     db.commit()
 
-    # 5. SZABÁLY: Várólista előresorolás (Ha egy aktív mondta le, jöhet a következő a listáról)
     if was_active:
         first_waitlisted = db.query(models.Booking).filter(
             models.Booking.class_id == yoga_class.id,
@@ -168,15 +179,11 @@ def cancel_booking(token: str, db: Session = Depends(get_db)):
         if first_waitlisted:
             first_waitlisted.status = "active"
             db.commit()
-            
-            # KÉSŐBB: Itt kell elküldeni egy e-mailt a first_waitlisted.user.email címre, 
-            # hogy "Bekerültél az órára!"
 
     return {"message": "A foglalást sikeresen lemondtad."}
 
-# Frissítettük az admin listázót is
 @app.get("/classes/{class_id}/bookings/")
-def get_class_bookings(class_id: int, db: Session = Depends(get_db)):
+def get_class_bookings(class_id: int, db: Session = Depends(get_db), admin: str = Depends(verify_admin)):
     bookings = db.query(models.Booking).filter(
         models.Booking.class_id == class_id,
         models.Booking.status.in_(["active", "waitlisted"])
@@ -187,14 +194,15 @@ def get_class_bookings(class_id: int, db: Session = Depends(get_db)):
         user = db.query(models.User).filter(models.User.id == b.user_id).first()
         if user:
             result.append({
-                "id": b.id,  # EZ AZ ÚJ SOR KELLETT IDE!
+                "id": b.id,  
                 "name": user.name, 
                 "email": user.email,
                 "status": b.status
             })
     return result
+
 @app.delete("/admin/bookings/{booking_id}")
-def admin_remove_booking(booking_id: int, db: Session = Depends(get_db)):
+def admin_remove_booking(booking_id: int, db: Session = Depends(get_db), admin: str = Depends(verify_admin)):
     booking = db.query(models.Booking).filter(models.Booking.id == booking_id).first()
     if not booking:
         raise HTTPException(status_code=404, detail="Foglalás nem található.")
@@ -207,7 +215,6 @@ def admin_remove_booking(booking_id: int, db: Session = Depends(get_db)):
     yoga_class = booking.yoga_class
     db.commit()
 
-    # Ha egy aktívat törölt az admin, a várólistáról egy ember előreugrik
     if was_active:
         first_waitlisted = db.query(models.Booking).filter(
             models.Booking.class_id == yoga_class.id,
@@ -219,17 +226,19 @@ def admin_remove_booking(booking_id: int, db: Session = Depends(get_db)):
             db.commit()
             
     return {"message": "Tanítvány sikeresen eltávolítva."}
+
 @app.delete("/admin/classes/{class_id}")
-def delete_class(class_id: int, db: Session = Depends(get_db)):
+def delete_class(class_id: int, db: Session = Depends(get_db), admin: str = Depends(verify_admin)):
     yoga_class = db.query(models.YogaClass).filter(models.YogaClass.id == class_id).first()
     if not yoga_class:
         raise HTTPException(status_code=404, detail="Az óra nem található.")
     
-    # Először töröljük a hozzá tartozó foglalásokat, hogy ne maradjanak "árva" adatok
     db.query(models.Booking).filter(models.Booking.class_id == class_id).delete()
-    
-    # Majd töröljük magát az órát
     db.delete(yoga_class)
     db.commit()
     
     return {"message": "A jógaóra és a jelentkezések sikeresen törölve."}
+
+@app.get("/admin/verify")
+def verify_login(admin: str = Depends(verify_admin)):
+    return {"message": "Sikeres belépés"}

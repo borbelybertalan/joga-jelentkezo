@@ -4,11 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Oktatói Adminisztráció</title>
-    <!-- FullCalendar könyvtár betöltése -->
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* Két extra stílus a törlés gombokhoz és a listához */
         .admin-student-list { list-style-type: none; padding-left: 0; margin-top: 10px; }
         .admin-student-list li { padding: 8px 0; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
         .admin-student-list li:last-child { border-bottom: none; }
@@ -16,14 +14,32 @@
     </style>
 </head>
 <body>
-    <div class="container">
+    <!-- BEJELENTKEZŐ KÉPERNYŐ -->
+    <div id="login-screen" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh;">
+        <div class="box" style="width: 100%; max-width: 350px; text-align: center;">
+            <h2 style="margin-top: 0; color: var(--accent-color);">Admin Belépés</h2>
+            <div class="form-group" style="text-align: left;">
+                <label>Felhasználónév</label>
+                <input type="text" id="login-user" required>
+            </div>
+            <div class="form-group" style="text-align: left;">
+                <label>Jelszó</label>
+                <input type="password" id="login-pass" required>
+            </div>
+            <button id="login-btn" class="btn-primary" style="width: 100%;">Belépés</button>
+            <p id="login-error" style="color: #d9534f; display: none; margin-top: 15px; font-size: 0.9em;">Hibás adatok!</p>
+        </div>
+    </div>
+
+    <!-- FŐ ADMIN FELÜLET (Alapból rejtve) -->
+    <div id="app-content" class="container" style="display: none;">
         <h1>Oktatói Naptár</h1>
         
         <div style="margin-bottom: 20px; text-align: right;">
             <button id="open-add-modal-btn" class="btn-primary">+ Új óra meghirdetése</button>
+            <button id="logout-btn" class="btn-secondary" style="margin-left: 10px;">Kijelentkezés</button>
         </div>
         
-        <!-- Naptár konténer -->
         <div id="calendar"></div>
     </div>
 
@@ -48,7 +64,6 @@
             <p id="manage-time" style="color: var(--accent-color); font-weight: 500; margin-top: -15px; margin-bottom: 20px;"></p>
             
             <div id="manage-students-container">
-                <!-- A JavaScript ide tölti be a listákat -->
                 <p>Jelentkezők betöltése...</p>
             </div>
             
