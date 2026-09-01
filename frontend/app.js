@@ -1,9 +1,13 @@
 document.addEventListener('DOMContentLoaded', async function() {
     const calendarEl = document.getElementById('calendar');
-    
-    // Felugró ablak elemeinek lekérése
+
     const modal = document.getElementById('booking-modal');
     const modalTitle = document.getElementById('modal-title');
+    const modalTime = document.getElementById('modal-time');
+    const modalFreeSpots = document.getElementById('modal-free-spots');
+    const modalInstructor = document.getElementById('modal-instructor');
+    const modalNote = document.getElementById('modal-note');
+    const modalZoom = document.getElementById('modal-zoom');
     const nameInput = document.getElementById('user-name');
     const emailInput = document.getElementById('user-email');
     const cancelBtn = document.getElementById('cancel-btn');
@@ -11,10 +15,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     let currentSelectedClassId = null;
 
-    // Ablak bezárása függvény
     function closeModal() {
         modal.classList.remove('active');
-        // Kicsit várunk a tartalom törlésével, amíg lefut a bezáródás animációja
         setTimeout(() => {
             nameInput.value = '';
             emailInput.value = '';
@@ -22,17 +24,14 @@ document.addEventListener('DOMContentLoaded', async function() {
         }, 300);
     }
 
-    // Bezárás, ha a Mégsem gombra kattint
     cancelBtn.addEventListener('click', closeModal);
 
-    // Bezárás, ha a sötét háttérre (az ablakon kívülre) kattint
     window.addEventListener('click', (e) => {
         if (e.target === modal) {
             closeModal();
         }
     });
 
-    // Foglalás elküldése, ha a Jelentkezem gombra kattint
     submitBtn.addEventListener('click', async () => {
         const userName = nameInput.value.trim();
         const userEmail = emailInput.value.trim();
@@ -44,7 +43,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         if (!currentSelectedClassId) return;
 
-        // Gomb letiltása, amíg tölt
         submitBtn.disabled = true;
         submitBtn.textContent = 'Jelentkezés...';
 
@@ -57,13 +55,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                 class_id: currentSelectedClassId
             })
         });
-        
+
         if (bookingResponse.ok) {
-            // Itt beolvassuk a backend által küldött választ
-            const data = await bookingResponse.json(); 
-            // A hardkódolt szöveg helyett a backend üzenetét jelenítjük meg
-            alert(data.message); 
-            location.reload(); // Frissíti az oldalt
+            const data = await bookingResponse.json();
+            alert(data.message);
+            location.reload();
         } else {
             const data = await bookingResponse.json();
             alert('Hiba történt: ' + data.detail);
@@ -72,20 +68,31 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     });
 
-    // 1. Órák lekérése a backendtől
     const response = await fetch('http://127.0.0.1:8000/classes/');
     const classes = await response.json();
 
-    // 2. Formázás a naptárnak, szabad helyek kijelzésével
-    const events = classes.map(yogaClass => ({
-        id: yogaClass.id,
-        title: `${yogaClass.title} (${yogaClass.free_spots} szabad)`,
-        start: yogaClass.start_time,
-        allDay: false
-    }));
+    const events = classes.map(yogaClass => {
+        const event = {
+            id: yogaClass.id,
+            title: yogaClass.title,
+            start: yogaClass.start_time,
+            allDay: false,
+            extendedProps: {
+                freeSpots: yogaClass.free_spots,
+                instructor: yogaClass.instructor,
+                note: yogaClass.note,
+                zoomAvailable: yogaClass.zoom_available
+            }
+        };
 
-    // 3. Naptár rajzolása és foglalás logika
-    var calendar = new FullCalendar.Calendar(calendarEl, {
+        if (yogaClass.end_time) {
+            event.end = yogaClass.end_time;
+        }
+
+        return event;
+    });
+
+    const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'timeGridWeek',
         locale: 'hu',
         slotMinTime: '06:00:00',
@@ -97,14 +104,42 @@ document.addEventListener('DOMContentLoaded', async function() {
         },
         events: events,
         eventClick: function(info) {
-            // Felugró ablak megnyitása és adatok betöltése
             currentSelectedClassId = parseInt(info.event.id);
-            
-            // Kiszűrjük a "(X szabad)" részt, hogy csak az óra neve jelenjen meg a címben
-            const classTitle = info.event.title.split(' (')[0];
-            modalTitle.textContent = `Jelentkezés: ${classTitle}`;
-            
-            modal.classList.add('active'); // Ez jeleníti meg az ablakot
+
+            modalTitle.textContent = `Jelentkezés: ${info.event.title}`;
+
+            const start = info.event.start;
+            const end = info.event.end;
+            if (start) {
+                const dateText = start.toLocaleDateString('hu-HU', {
+                    year: 'numeric', month: 'long', day: 'numeric'
+                });
+                const startText = start.toLocaleTimeString('hu-HU', {
+                    hour: '2-digit', minute: '2-digit'
+                });
+                const endText = end ? end.toLocaleTimeString('hu-HU', {
+                    hour: '2-digit', minute: '2-digit'
+                }) : '';
+                modalTime.textContent = `${dateText} • ${startText}${endText ? ` - ${endText}` : ''}`;
+            } else {
+                modalTime.textContent = '';
+            }
+
+            modalFreeSpots.textContent = `${info.event.extendedProps.freeSpots} szabad hely`;
+
+            const instructor = info.event.extendedProps.instructor;
+            modalInstructor.textContent = instructor || '';
+            modalInstructor.style.display = instructor ? 'block' : 'none';
+
+            const note = info.event.extendedProps.note;
+            modalNote.textContent = note || '';
+            modalNote.style.display = note ? 'block' : 'none';
+
+            const zoomAvailable = info.event.extendedProps.zoomAvailable;
+            modalZoom.textContent = zoomAvailable ? 'Zoom-on is' : '';
+            modalZoom.style.display = zoomAvailable ? 'block' : 'none';
+
+            modal.classList.add('active');
         }
     });
 
