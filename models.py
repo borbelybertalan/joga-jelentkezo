@@ -1,48 +1,65 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean
-from sqlalchemy.orm import relationship
+import secrets
+from datetime import datetime
+
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from database import Base
-import datetime
-import uuid
+from time_utils import utc_now_naive
+
 
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True)
-    email = Column(String, unique=True, index=True)
-    role = Column(String, default="student")
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(120), nullable=False, index=True)
+    email: Mapped[str] = mapped_column(String(254), nullable=False, unique=True, index=True)
+    role: Mapped[str] = mapped_column(String(30), nullable=False, default="student")
 
-    # Kapcsolat a foglalasokhoz
-    bookings = relationship("Booking", back_populates="user")
+    bookings: Mapped[list["Booking"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan", passive_deletes=True
+    )
+
 
 class YogaClass(Base):
     __tablename__ = "yoga_classes"
+    __table_args__ = (CheckConstraint("max_capacity >= 1", name="ck_yoga_classes_capacity"),)
 
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column(String)
-    start_time = Column(DateTime)
-    max_capacity = Column(Integer, default=15)
-    instructor = Column(String, nullable=True)
-    note = Column(String, nullable=True)
-    zoom_available = Column(Boolean, default=False, nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    title: Mapped[str] = mapped_column(String(160), nullable=False)
+    # Az adatbázisban minden időpont UTC, timezone nélküli datetime-ként szerepel.
+    start_time: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+    max_capacity: Mapped[int] = mapped_column(Integer, nullable=False, default=15)
+    instructor: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    note: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    zoom_available: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
-    # Kapcsolat a foglalasokhoz
-    bookings = relationship("Booking", back_populates="yoga_class")
+    bookings: Mapped[list["Booking"]] = relationship(
+        back_populates="yoga_class", cascade="all, delete-orphan", passive_deletes=True
+    )
+
 
 class Booking(Base):
     __tablename__ = "bookings"
+    __table_args__ = (
+        UniqueConstraint("user_id", "class_id", name="uq_bookings_user_class"),
+        CheckConstraint(
+            "status IN ('active', 'waitlisted', 'cancelled')", name="ck_bookings_status"
+        ),
+    )
 
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
-    class_id = Column(Integer, ForeignKey("yoga_classes.id"))
-    booking_time = Column(DateTime, default=datetime.datetime.utcnow)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    class_id: Mapped[int] = mapped_column(
+        ForeignKey("yoga_classes.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    booking_time: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=utc_now_naive)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="active", index=True)
+    cancel_token: Mapped[str] = mapped_column(
+        String(128), nullable=False, unique=True, default=lambda: secrets.token_urlsafe(32)
+    )
 
-    # Státusz: lehet "active", "waitlisted" vagy "cancelled"
-    status = Column(String, default="active")
-
-    # Egyedi azonosító a lemondáshoz, ami az e-mail linkbe kerül
-    cancel_token = Column(String, default=lambda: str(uuid.uuid4()), unique=True)
-
-    # Visszautalas a szulo tablakra
-    user = relationship("User", back_populates="bookings")
-    yoga_class = relationship("YogaClass", back_populates="bookings")
+    user: Mapped[User] = relationship(back_populates="bookings")
+    yoga_class: Mapped[YogaClass] = relationship(back_populates="bookings")

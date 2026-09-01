@@ -42,26 +42,40 @@ document.addEventListener('DOMContentLoaded', async function() {
         submitBtn.disabled = true;
         submitBtn.textContent = 'Jelentkezés...';
 
-        const bookingResponse = await fetch('http://127.0.0.1:8000/bookings/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: userName, email: userEmail, class_id: currentSelectedClassId })
-        });
+        try {
+            const bookingResponse = await fetch('/bookings/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: userName, email: userEmail, class_id: currentSelectedClassId })
+            });
+            const data = await bookingResponse.json().catch(() => ({}));
 
-        if (bookingResponse.ok) {
-            const data = await bookingResponse.json();
-            alert(data.message);
+            if (!bookingResponse.ok) {
+                throw new Error(data.detail || 'A jelentkezés nem sikerült.');
+            }
+
+            const cancellationNote = data.cancel_url
+                ? `\n\nLemondó link (őrizd meg az e-mailes visszaigazolásig):\n${data.cancel_url}`
+                : '';
+            alert(data.message + cancellationNote);
             location.reload();
-        } else {
-            const data = await bookingResponse.json();
-            alert('Hiba történt: ' + data.detail);
+        } catch (error) {
+            alert('Hiba történt: ' + error.message);
+        } finally {
             submitBtn.disabled = false;
             submitBtn.textContent = 'Jelentkezem';
         }
     });
 
-    const response = await fetch('http://127.0.0.1:8000/classes/');
-    const classes = await response.json();
+    let classes;
+    try {
+        const response = await fetch('/classes/');
+        if (!response.ok) throw new Error('Az órarend nem tölthető be.');
+        classes = await response.json();
+    } catch (error) {
+        calendarEl.textContent = `Az órarend betöltése nem sikerült: ${error.message}`;
+        return;
+    }
 
     const events = classes.map(yogaClass => {
         const event = {
@@ -79,8 +93,11 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         if (yogaClass.end_time) event.end = yogaClass.end_time;
 
-        if (yogaClass.title.toLowerCase().includes('légzés')) {
-            event.classNames = ['breathing-event'];
+        const title = yogaClass.title.toLowerCase();
+        if (title.includes('légzés')) event.classNames = ['breathing-event'];
+        // A hosszabb című órát a CSS az eredeti dobozmagasságon belül igazítja.
+        if (title.includes('aktív mozgás')) {
+            event.classNames = [...(event.classNames || []), 'long-title-event'];
         }
 
         return event;
