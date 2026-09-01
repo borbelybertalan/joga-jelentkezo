@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', async function() {
-    
     const loginScreen = document.getElementById('login-screen');
     const appContent = document.getElementById('app-content');
     const loginError = document.getElementById('login-error');
@@ -18,7 +17,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     async function initializeApp(savedAuth) {
         authHeader = savedAuth;
         const response = await fetch('http://127.0.0.1:8000/admin/verify', { headers: { 'Authorization': authHeader } });
-        
         if (response.ok) {
             loginScreen.style.display = 'none';
             appContent.style.display = 'block';
@@ -30,9 +28,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     const storedAuth = sessionStorage.getItem('jogaAuth');
-    if (storedAuth) {
-        initializeApp(storedAuth);
-    }
+    if (storedAuth) initializeApp(storedAuth);
 
     document.getElementById('login-btn').addEventListener('click', async () => {
         const user = document.getElementById('login-user').value.trim();
@@ -41,7 +37,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         const attemptAuth = 'Basic ' + btoa(user + ':' + pass);
         const response = await fetch('http://127.0.0.1:8000/admin/verify', { headers: { 'Authorization': attemptAuth } });
-        
         if (response.ok) {
             sessionStorage.setItem('jogaAuth', attemptAuth);
             loginError.style.display = 'none';
@@ -58,7 +53,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     async function loadCalendar() {
         const calendarEl = document.getElementById('calendar');
-        
+
         const addModal = document.getElementById('add-class-modal');
         document.getElementById('open-add-modal-btn').addEventListener('click', () => addModal.classList.add('active'));
         document.getElementById('cancel-add-btn').addEventListener('click', () => addModal.classList.remove('active'));
@@ -66,6 +61,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         const manageModal = document.getElementById('manage-class-modal');
         const manageTitle = document.getElementById('manage-title');
         const manageTime = document.getElementById('manage-time');
+        const manageInfo = document.getElementById('manage-info');
         const studentsContainer = document.getElementById('manage-students-container');
         let currentManageClassId = null;
 
@@ -75,18 +71,31 @@ document.addEventListener('DOMContentLoaded', async function() {
             const title = document.getElementById('new-title').value.trim();
             const time = document.getElementById('new-time').value;
             const capacity = parseInt(document.getElementById('new-capacity').value);
+            const instructor = document.getElementById('new-instructor').value.trim() || null;
+            const note = document.getElementById('new-note').value.trim() || null;
+            const zoomAvailable = document.getElementById('new-zoom').checked;
 
             if (!title || !time || !capacity) return alert('Minden mezőt tölts ki!');
 
             const response = await fetchAdmin('http://127.0.0.1:8000/classes/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title, start_time: new Date(time).toISOString(), max_capacity: capacity })
+                body: JSON.stringify({
+                    title,
+                    start_time: new Date(time).toISOString(),
+                    max_capacity: capacity,
+                    instructor,
+                    note,
+                    zoom_available: zoomAvailable
+                })
             });
 
             if (response.ok) {
                 alert('Óra sikeresen meghirdetve!');
                 location.reload();
+            } else {
+                const data = await response.json();
+                alert('Hiba történt: ' + (data.detail || 'Ismeretlen hiba'));
             }
         });
 
@@ -94,35 +103,41 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (!currentManageClassId) return;
             if (!confirm('Biztosan törölni szeretnéd a teljes órát és az összes jelentkezőt? Ez nem vonható vissza.')) return;
 
-            const response = await fetchAdmin(`http://127.0.0.1:8000/admin/classes/${currentManageClassId}`, {
-                method: 'DELETE'
-            });
-
+            const response = await fetchAdmin(`http://127.0.0.1:8000/admin/classes/${currentManageClassId}`, { method: 'DELETE' });
             if (response.ok) {
                 alert('Óra törölve.');
                 location.reload();
             }
         });
 
-        // A törlés funkció a loadCalendar hatókörébe került, így látja a fetchAdmin függvényt
         window.deleteStudent = async function(bookingId) {
             if (!confirm('Biztosan eltávolítod a tanítványt?')) return;
             const response = await fetchAdmin(`http://127.0.0.1:8000/admin/bookings/${bookingId}`, { method: 'DELETE' });
             if (response.ok) {
                 alert('Tanítvány eltávolítva.');
-                location.reload(); 
+                location.reload();
             }
         };
 
         const response = await fetchAdmin('http://127.0.0.1:8000/classes/');
         const classes = await response.json();
 
-        const events = classes.map(yogaClass => ({
-            id: yogaClass.id,
-            title: `${yogaClass.title} (${yogaClass.free_spots} szabad)`,
-            start: yogaClass.start_time,
-            allDay: false
-        }));
+        const events = classes.map(yogaClass => {
+            const event = {
+                id: yogaClass.id,
+                title: yogaClass.title,
+                start: yogaClass.start_time,
+                allDay: false,
+                extendedProps: {
+                    freeSpots: yogaClass.free_spots,
+                    instructor: yogaClass.instructor,
+                    note: yogaClass.note,
+                    zoomAvailable: yogaClass.zoom_available
+                }
+            };
+            if (yogaClass.end_time) event.end = yogaClass.end_time;
+            return event;
+        });
 
         const calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'timeGridWeek',
@@ -133,9 +148,24 @@ document.addEventListener('DOMContentLoaded', async function() {
             events: events,
             eventClick: async function(info) {
                 currentManageClassId = parseInt(info.event.id);
-                manageTitle.textContent = info.event.title.split(' (')[0];
-                manageTime.textContent = info.event.start.toLocaleString('hu-HU', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute:'2-digit' });
-                
+                const props = info.event.extendedProps;
+                manageTitle.textContent = info.event.title;
+
+                const start = info.event.start;
+                const end = info.event.end;
+                const dateText = start.toLocaleDateString('hu-HU', { year: 'numeric', month: 'long', day: 'numeric' });
+                const startText = start.toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' });
+                const endText = end ? end.toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' }) : '';
+                manageTime.textContent = `${dateText} • ${startText}${endText ? ` - ${endText}` : ''}`;
+
+                let infoHtml = `<div class="admin-class-info">
+                    <div><strong>${props.freeSpots} szabad hely</strong></div>
+                    ${props.instructor ? `<div class="class-instructor"><em>${props.instructor}</em></div>` : ''}
+                    ${props.note ? `<div class="class-note">${props.note}</div>` : ''}
+                    ${props.zoomAvailable ? `<div class="class-zoom">Zoom-on is</div>` : ''}
+                </div>`;
+                manageInfo.innerHTML = infoHtml;
+
                 studentsContainer.innerHTML = '<p>Betöltés...</p>';
                 manageModal.classList.add('active');
 
@@ -153,13 +183,13 @@ document.addEventListener('DOMContentLoaded', async function() {
 
                 studentsContainer.innerHTML = `
                     <div style="margin-bottom: 15px;">
-                        <strong>✅ Aktív résztvevők:</strong>
+                        <strong>Aktív résztvevők:</strong>
                         <ul class="admin-student-list" style="color: #2e7d32;">
                             ${activeHtml || '<li><i>Nincs aktív jelentkező.</i></li>'}
                         </ul>
                     </div>
                     <div>
-                        <strong>⏳ Várólista:</strong>
+                        <strong>Várólista:</strong>
                         <ul class="admin-student-list" style="color: #ef6c00;">
                             ${waitlistHtml || '<li><i>Üres a várólista.</i></li>'}
                         </ul>
