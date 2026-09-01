@@ -10,26 +10,31 @@
 <body>
     <div class="container">
         <h1>Jóga Órarend és Foglalás</h1>
-        
-        <!-- Ide fogja a JavaScript legenerálni a naptárat -->
         <div id="calendar"></div>
     </div>
 
-    <!-- Foglalási Modal (Saját dizájnos felugró ablak) -->
     <div id="booking-modal" class="modal">
         <div class="modal-content">
             <h2 id="modal-title">Jelentkezés</h2>
-            
+
+            <div id="class-info" class="class-info">
+                <div id="modal-time"></div>
+                <div id="modal-free-spots"></div>
+                <div id="modal-instructor" class="class-instructor"></div>
+                <div id="modal-note" class="class-note"></div>
+                <div id="modal-zoom" class="class-zoom"></div>
+            </div>
+
             <div class="form-group">
                 <label for="user-name">Teljes név</label>
                 <input type="text" id="user-name" required>
             </div>
-            
+
             <div class="form-group">
                 <label for="user-email">E-mail cím</label>
                 <input type="email" id="user-email" required>
             </div>
-            
+
             <div class="modal-actions">
                 <button id="cancel-btn" class="btn-secondary">Mégsem</button>
                 <button id="submit-btn" class="btn-primary">Jelentkezem</button>
