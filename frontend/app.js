@@ -27,20 +27,16 @@ document.addEventListener('DOMContentLoaded', async function() {
     cancelBtn.addEventListener('click', closeModal);
 
     window.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            closeModal();
-        }
+        if (e.target === modal) closeModal();
     });
 
     submitBtn.addEventListener('click', async () => {
         const userName = nameInput.value.trim();
         const userEmail = emailInput.value.trim();
-
         if (!userName || !userEmail) {
             alert('Kérlek, tölts ki minden mezőt a jelentkezéshez!');
             return;
         }
-
         if (!currentSelectedClassId) return;
 
         submitBtn.disabled = true;
@@ -49,11 +45,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         const bookingResponse = await fetch('http://127.0.0.1:8000/bookings/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                name: userName,
-                email: userEmail,
-                class_id: currentSelectedClassId
-            })
+            body: JSON.stringify({ name: userName, email: userEmail, class_id: currentSelectedClassId })
         });
 
         if (bookingResponse.ok) {
@@ -85,8 +77,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         };
 
-        if (yogaClass.end_time) {
-            event.end = yogaClass.end_time;
+        if (yogaClass.end_time) event.end = yogaClass.end_time;
+
+        if (yogaClass.title.toLowerCase().includes('légzés')) {
+            event.classNames = ['breathing-event'];
         }
 
         return event;
@@ -97,29 +91,18 @@ document.addEventListener('DOMContentLoaded', async function() {
         locale: 'hu',
         slotMinTime: '06:00:00',
         slotMaxTime: '22:00:00',
-        headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: 'dayGridMonth,timeGridWeek,timeGridDay'
-        },
+        headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay' },
         events: events,
         eventClick: function(info) {
             currentSelectedClassId = parseInt(info.event.id);
-
             modalTitle.textContent = `Jelentkezés: ${info.event.title}`;
 
             const start = info.event.start;
             const end = info.event.end;
             if (start) {
-                const dateText = start.toLocaleDateString('hu-HU', {
-                    year: 'numeric', month: 'long', day: 'numeric'
-                });
-                const startText = start.toLocaleTimeString('hu-HU', {
-                    hour: '2-digit', minute: '2-digit'
-                });
-                const endText = end ? end.toLocaleTimeString('hu-HU', {
-                    hour: '2-digit', minute: '2-digit'
-                }) : '';
+                const dateText = start.toLocaleDateString('hu-HU', { year: 'numeric', month: 'long', day: 'numeric' });
+                const startText = start.toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' });
+                const endText = end ? end.toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' }) : '';
                 modalTime.textContent = `${dateText} • ${startText}${endText ? ` - ${endText}` : ''}`;
             } else {
                 modalTime.textContent = '';
