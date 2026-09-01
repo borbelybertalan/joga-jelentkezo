@@ -77,12 +77,15 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             if (!title || !time || !capacity) return alert('Minden mezőt tölts ki!');
 
+            // A datetime-local értéket szándékosan változtatás nélkül küldjük el.
+            // Így a backend helyi magyar időként tudja tárolni, és nem történik
+            // UTC-konverzió. Ez az óraátállítás után is helyesen működik.
             const response = await fetchAdmin('http://127.0.0.1:8000/classes/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     title,
-                    start_time: new Date(time).toISOString(),
+                    start_time: time,
                     max_capacity: capacity,
                     instructor,
                     note,
@@ -135,7 +138,16 @@ document.addEventListener('DOMContentLoaded', async function() {
                     zoomAvailable: yogaClass.zoom_available
                 }
             };
-            if (yogaClass.end_time) event.end = yogaClass.end_time;
+
+            const startDate = new Date(yogaClass.start_time);
+            if (startDate.getHours() === 6 && startDate.getMinutes() === 20) {
+                event.end = yogaClass.end_time || new Date(startDate.getTime() + 30 * 60 * 1000).toISOString();
+            }
+
+            if (yogaClass.title.toLowerCase().includes('légzés')) {
+                event.classNames = ['breathing-event'];
+            }
+
             return event;
         });
 
