@@ -14,7 +14,6 @@
     </style>
 </head>
 <body>
-    <!-- BEJELENTKEZŐ KÉPERNYŐ -->
     <div id="login-screen" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh;">
         <div class="box" style="width: 100%; max-width: 350px; text-align: center;">
             <h2 style="margin-top: 0; color: var(--accent-color);">Admin Belépés</h2>
@@ -31,25 +30,24 @@
         </div>
     </div>
 
-    <!-- FŐ ADMIN FELÜLET (Alapból rejtve) -->
     <div id="app-content" class="container" style="display: none;">
         <h1>Oktatói Naptár</h1>
-        
         <div style="margin-bottom: 20px; text-align: right;">
             <button id="open-add-modal-btn" class="btn-primary">+ Új óra meghirdetése</button>
             <button id="logout-btn" class="btn-secondary" style="margin-left: 10px;">Kijelentkezés</button>
         </div>
-        
         <div id="calendar"></div>
     </div>
 
-    <!-- Új óra felugró ablak -->
     <div id="add-class-modal" class="modal">
         <div class="modal-content">
             <h2>Új óra meghirdetése</h2>
             <div class="form-group"><label>Óra neve</label><input type="text" id="new-title" required></div>
             <div class="form-group"><label>Időpont</label><input type="datetime-local" id="new-time" required></div>
             <div class="form-group"><label>Maximális létszám</label><input type="number" id="new-capacity" value="15" min="1" required></div>
+            <div class="form-group"><label>Oktató</label><input type="text" id="new-instructor"></div>
+            <div class="form-group"><label>Megjegyzés</label><input type="text" id="new-note"></div>
+            <div class="form-group checkbox-group"><label><input type="checkbox" id="new-zoom"> Zoom-on is</label></div>
             <div class="modal-actions">
                 <button id="cancel-add-btn" class="btn-secondary">Mégsem</button>
                 <button id="submit-add-btn" class="btn-primary">Meghirdetés</button>
@@ -57,16 +55,14 @@
         </div>
     </div>
 
-    <!-- Óra kezelése felugró ablak -->
     <div id="manage-class-modal" class="modal">
         <div class="modal-content">
             <h2 id="manage-title">Óra részletei</h2>
             <p id="manage-time" style="color: var(--accent-color); font-weight: 500; margin-top: -15px; margin-bottom: 20px;"></p>
-            
+            <div id="manage-info"></div>
             <div id="manage-students-container">
                 <p>Jelentkezők betöltése...</p>
             </div>
-            
             <div class="modal-actions" style="justify-content: space-between; border-top: 1px solid var(--border-color); padding-top: 20px; margin-top: 20px;">
                 <button id="delete-class-btn" style="background: none; border: none; color: #d9534f; cursor: pointer; text-decoration: underline;">Teljes óra törlése</button>
                 <button id="close-manage-btn" class="btn-secondary">Bezárás</button>
