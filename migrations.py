@@ -1,15 +1,15 @@
 from sqlalchemy import inspect, text
 
-from database import Base, SessionLocal, engine
 import models
+from database import Base, SessionLocal, engine
 from time_utils import to_utc_naive
-
 
 MIGRATION_TABLE = "schema_migrations"
 LEGACY_METADATA_MIGRATION = "20260901_add_yoga_class_metadata"
 UTC_TIMES_MIGRATION = "20260901_store_class_times_as_utc"
 BOOKING_INDEX_MIGRATION = "20260901_unique_booking_per_user_and_class"
 BOOKING_CONSTRAINTS_MIGRATION = "20260901_rebuild_bookings_with_constraints"
+PASS_SYSTEM_MIGRATION = "20260902_add_pass_system"
 
 
 def _record_migration(connection, migration_id: str) -> None:
@@ -110,6 +110,29 @@ def run_migrations() -> None:
             connection.execute(text("CREATE INDEX ix_bookings_class_id ON bookings (class_id)"))
             connection.execute(text("CREATE INDEX ix_bookings_status ON bookings (status)"))
             _record_migration(connection, BOOKING_CONSTRAINTS_MIGRATION)
+
+        if not _is_applied(connection, PASS_SYSTEM_MIGRATION):
+            booking_columns = {column["name"] for column in inspect(connection).get_columns("bookings")}
+            if "pass_id" not in booking_columns:
+                connection.execute(text("ALTER TABLE bookings ADD COLUMN pass_id INTEGER"))
+            if "pass_use_consumed" not in booking_columns:
+                connection.execute(
+                    text(
+                        "ALTER TABLE bookings "
+                        "ADD COLUMN pass_use_consumed BOOLEAN NOT NULL DEFAULT 0"
+                    )
+                )
+            if "pass_usage_settled" not in booking_columns:
+                connection.execute(
+                    text(
+                        "ALTER TABLE bookings "
+                        "ADD COLUMN pass_usage_settled BOOLEAN NOT NULL DEFAULT 0"
+                    )
+                )
+            connection.execute(
+                text("CREATE INDEX IF NOT EXISTS ix_bookings_pass_id ON bookings (pass_id)")
+            )
+            _record_migration(connection, PASS_SYSTEM_MIGRATION)
 
     # A korábbi felület lokális magyar időt tárolt timezone nélkül. Ezt egyszer alakítjuk UTC-re.
     with engine.begin() as connection:

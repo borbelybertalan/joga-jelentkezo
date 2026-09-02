@@ -30,7 +30,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     confirmButton.addEventListener('click', async () => {
-        if (!confirm('Biztosan lemondod ezt a foglalást?')) return;
+        const confirmed = await appDialog.confirm('Biztosan lemondod ezt a foglalást?', {
+            title: 'Foglalás lemondása',
+            confirmLabel: 'Igen, lemondom',
+            variant: 'danger'
+        });
+        if (!confirmed) return;
         confirmButton.disabled = true;
         try {
             const response = await fetch(`/bookings/cancel/${encodeURIComponent(token)}`, { method: 'POST' });

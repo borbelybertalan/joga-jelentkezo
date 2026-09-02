@@ -20,6 +20,7 @@ Az első indítás egyszeri, verziózott migrációt futtat. A régi, helyi magy
 
 - `DATABASE_PATH`: opcionális abszolút SQLite fájlútvonal.
 - `FRONTEND_ORIGINS`: csak akkor add meg vesszővel elválasztva, ha a frontend más originről fut. Az alapértelmezett, azonos originű kiszolgáláshoz nincs szükség CORS-ra.
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM`: opcionális SMTP-beállítások a foglalási visszaigazolásokhoz. Brevo esetén használd a Brevo SMTP-hitelesítő adatait. Beállítás nélkül a foglalás működik, de e-mail nem kerül kiküldésre.
 
 ## Ellenőrzések
 

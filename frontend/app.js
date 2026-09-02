@@ -34,7 +34,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         const userName = nameInput.value.trim();
         const userEmail = emailInput.value.trim();
         if (!userName || !userEmail) {
-            alert('Kérlek, tölts ki minden mezőt a jelentkezéshez!');
+            await appDialog.alert('Kérlek, tölts ki minden mezőt a jelentkezéshez!', {
+                title: 'Hiányzó adatok',
+                variant: 'error'
+            });
             return;
         }
         if (!currentSelectedClassId) return;
@@ -55,12 +58,21 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
 
             const cancellationNote = data.cancel_url
-                ? `\n\nLemondó link (őrizd meg az e-mailes visszaigazolásig):\n${data.cancel_url}`
+                ? `\n\nLemondó link (őrizd meg):\n${data.cancel_url}`
                 : '';
-            alert(data.message + cancellationNote);
+            const emailNote = data.email_sent
+                ? '\n\nA visszaigazoló e-mailt elküldtük.'
+                : '';
+            await appDialog.alert(data.message + emailNote + cancellationNote, {
+                title: 'Foglalás rögzítve',
+                variant: 'success'
+            });
             location.reload();
         } catch (error) {
-            alert('Hiba történt: ' + error.message);
+            await appDialog.alert('Hiba történt: ' + error.message, {
+                title: 'Foglalás sikertelen',
+                variant: 'error'
+            });
         } finally {
             submitBtn.disabled = false;
             submitBtn.textContent = 'Jelentkezem';

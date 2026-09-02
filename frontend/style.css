@@ -4,6 +4,9 @@
 body { font-family:'Outfit','Helvetica Neue',Arial,sans-serif; background-color:var(--bg-color); color:var(--text-main); margin:0; padding:3vh 2vw; display:flex; justify-content:center; min-height:100vh; }
 .container { width:100%; max-width:1400px; background:var(--surface-color); padding:40px; border-radius:var(--border-radius); box-shadow:0 12px 40px rgba(44,62,45,.05); box-sizing:border-box; }
 h1 { text-align:center; color:var(--accent-color); margin-top:0; margin-bottom:40px; font-weight:500; font-size:2.2rem; letter-spacing:.5px; }
+.intro-section { max-width:860px; margin:0 auto 36px; padding:24px 28px; background:var(--bg-color); border-radius:12px; line-height:1.7; }
+.intro-section h2 { color:var(--accent-color); font-size:1.35rem; font-weight:500; margin:0 0 12px; }
+.intro-section p { margin:10px 0; }
 #calendar { min-height:700px; } .fc { font-family:inherit; }
 /* A CSP szándékosan tiltja a FullCalendar beágyazott ikonfontját. A navigáció
    ezért rendszerbetűtípussal rajzolt Unicode nyilakat használ. */
@@ -29,6 +32,17 @@ h1 { text-align:center; color:var(--accent-color); margin-top:0; margin-bottom:4
 .modal-content { background-color:var(--surface-color); padding:35px; border-radius:var(--border-radius); width:90%; max-width:450px; box-shadow:0 20px 50px rgba(0,0,0,.15); transform:translateY(-20px); transition:transform .3s ease; }
 .modal.active .modal-content { transform:translateY(0); }
 .modal h2 { color:var(--text-main); margin-top:0; margin-bottom:25px; font-size:1.5rem; font-weight:500; }
+.app-dialog-open { overflow:hidden; }
+.app-dialog-overlay { display:none; position:fixed; inset:0; z-index:2000; align-items:center; justify-content:center; padding:20px; box-sizing:border-box; background:rgba(44,62,45,.55); }
+.app-dialog-overlay.active { display:flex; }
+.app-dialog { width:100%; max-width:460px; padding:30px; border:1px solid var(--border-color); border-radius:var(--border-radius); background:var(--surface-color); box-shadow:0 20px 50px rgba(44,62,45,.25); box-sizing:border-box; }
+.app-dialog h2 { color:var(--accent-color); margin:0 0 14px; font-size:1.35rem; font-weight:500; }
+.app-dialog-overlay.app-dialog-error .app-dialog h2,
+.app-dialog-overlay.app-dialog-danger .app-dialog h2 { color:#b65b4d; }
+.app-dialog-message { margin:0; color:var(--text-main); line-height:1.65; white-space:pre-line; }
+.app-dialog-actions { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:10px; margin-top:26px; }
+.app-dialog-danger { background:#b65b4d; }
+.app-dialog-danger:hover { background:#98493e; }
 .class-info { margin:-5px 0 25px; padding:15px; background:var(--bg-color); border-radius:10px; line-height:1.8; }
 .class-instructor { font-style:italic; } .class-note { color:#d9534f; } .class-zoom { font-weight:500; } .admin-class-info { margin-bottom:20px; line-height:1.8; }
 .form-group { margin-bottom:20px; } .form-group label { display:block; margin-bottom:8px; color:var(--text-muted); font-size:.95rem; }
@@ -47,4 +61,4 @@ h1 { text-align:center; color:var(--accent-color); margin-top:0; margin-bottom:4
 .delete-modal-box { background:white; padding:30px; border-radius:12px; text-align:center; max-width:400px; width:90%; } .delete-modal-title { margin-top:0; color:#d9534f; } .delete-modal-name { color:#333; margin:15px 0; }
 .delete-modal-actions { margin-top:25px; display:flex; gap:15px; justify-content:center; } .btn-cancel-delete { border:1px solid #ccc; padding:10px 20px; border-radius:8px; }
 .btn-confirm-delete { background:#d9534f; color:white; border:none; padding:10px 20px; border-radius:8px; cursor:pointer; font-weight:bold; } .btn-confirm-delete:hover { background:#c9302c; }
-@media (max-width:768px) { .container { padding:20px; border-radius:12px; } h1 { font-size:1.6rem; margin-bottom:25px; } .fc-toolbar { flex-direction:column; gap:15px; } .fc-toolbar-title { font-size:1.3rem!important; } .admin-grid { grid-template-columns:1fr; } }
+@media (max-width:768px) { .container { padding:20px; border-radius:12px; } h1 { font-size:1.6rem; margin-bottom:25px; } .intro-section { margin-bottom:24px; padding:20px; } .fc-toolbar { flex-direction:column; gap:15px; } .fc-toolbar-title { font-size:1.3rem!important; } .admin-grid { grid-template-columns:1fr; } }

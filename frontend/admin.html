@@ -5,12 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Oktatói Adminisztráció</title>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
-    <link rel="stylesheet" href="style.css?v=20260901-2">
+    <link rel="stylesheet" href="style.css?v=20260902-4">
     <style>
         .admin-student-list { list-style-type: none; padding-left: 0; margin-top: 10px; }
         .admin-student-list li { padding: 8px 0; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
         .admin-student-list li:last-child { border-bottom: none; }
         .btn-delete-small { background: none; border: none; color: #d9534f; cursor: pointer; text-decoration: underline; font-size: 0.9em; }
+        .student-registry { margin-top: 40px; }
+        .student-registry h2 { color: var(--accent-color); font-weight: 500; }
+        .student-card { border-top: 1px solid var(--border-color); padding: 18px 0; }
+        .student-card:first-child { border-top: none; }
+        .student-card-header { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; }
+        .student-emails, .student-pass { color: var(--text-muted); margin: 6px 0 0; font-size: .95rem; }
+        .guest-search { width: 100%; max-width: 460px; box-sizing: border-box; padding: 12px 15px; border: 1px solid var(--border-color); border-radius: 8px; font: inherit; color: var(--text-main); }
+        .guest-search:focus { outline: none; border-color: var(--accent-color); box-shadow: 0 0 0 3px rgba(122,156,123,.2); }
+        .guest-name-button { appearance: none; background: none; border: 0; color: var(--text-main); cursor: pointer; font: inherit; font-weight: 600; padding: 0; text-align: left; text-decoration: underline; text-decoration-color: transparent; transition: color .2s, text-decoration-color .2s; }
+        .guest-name-button:hover, .guest-name-button:focus-visible { color: var(--accent-hover); text-decoration-color: currentColor; outline: none; }
+        body.guest-editor-open { overflow: hidden; }
+        .guest-editor-content { max-width: 580px; max-height: 88vh; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; }
+        .guest-pass-editor { border-top: 1px solid var(--border-color); margin-top: 16px; padding-top: 16px; }
+        .guest-pass-editor:first-child { border-top: none; margin-top: 0; padding-top: 0; }
+        .guest-pass-editor h3 { font-size: 1rem; margin: 0 0 8px; }
+        .guest-pass-editor p { color: var(--text-muted); font-size: .9rem; margin: 0 0 12px; }
+        .guest-editor-section { border-top: 1px solid var(--border-color); margin-top: 24px; padding-top: 20px; }
+        .guest-editor-section h3 { margin-top: 0; font-size: 1.1rem; }
+        .guest-editor-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+        .admin-session-status { color: var(--text-muted); font-size: .9rem; margin: 0 0 8px; text-align: right; }
+        .session-notice { color: #9a5d00; display: none; margin: 15px 0 0; font-size: .9rem; }
+        .class-delete-summary { color: var(--text-muted); line-height: 1.5; margin: 18px 0 0; padding: 12px; background: var(--bg-color); border-radius: 8px; }
     </style>
 </head>
 <body>
@@ -27,16 +49,26 @@
             </div>
             <button id="login-btn" class="btn-primary" style="width: 100%;">Belépés</button>
             <p id="login-error" style="color: #d9534f; display: none; margin-top: 15px; font-size: 0.9em;">Hibás adatok!</p>
+            <p id="login-session-notice" class="session-notice" role="status" aria-live="polite"></p>
         </div>
     </div>
 
     <div id="app-content" class="container" style="display: none;">
         <h1>Oktatói Naptár</h1>
         <div style="margin-bottom: 20px; text-align: right;">
+            <p id="admin-session-status" class="admin-session-status" role="status" aria-live="polite"></p>
             <button id="open-add-modal-btn" class="btn-primary">+ Új óra meghirdetése</button>
             <button id="logout-btn" class="btn-secondary" style="margin-left: 10px;">Kijelentkezés</button>
         </div>
         <div id="calendar"></div>
+
+        <section class="box student-registry" aria-labelledby="student-registry-title">
+            <h2 id="student-registry-title">Vendégek és bérletek</h2>
+            <p>Vendégenként egy bejegyzés szerepel. Kattints egy névre a bérletek és e-mail-címek kezeléséhez.</p>
+            <label for="guest-search" style="display:block; margin: 20px 0 8px; color: var(--text-muted);">Keresés név alapján</label>
+            <input id="guest-search" class="guest-search" type="search" placeholder="Például: Kovács Anna" autocomplete="off">
+            <div id="student-registry-list">Vendégek betöltése...</div>
+        </section>
     </div>
 
     <div id="add-class-modal" class="modal">
@@ -63,13 +95,68 @@
             <div id="manage-students-container">
                 <p>Jelentkezők betöltése...</p>
             </div>
+            <p id="delete-class-summary" class="class-delete-summary">A törlés következményeinek betöltése...</p>
             <div class="modal-actions" style="justify-content: space-between; border-top: 1px solid var(--border-color); padding-top: 20px; margin-top: 20px;">
-                <button id="delete-class-btn" style="background: none; border: none; color: #d9534f; cursor: pointer; text-decoration: underline;">Teljes óra törlése</button>
-                <button id="close-manage-btn" class="btn-secondary">Bezárás</button>
+                <button id="delete-class-btn" style="background: none; border: none; color: #d9534f; cursor: pointer; text-decoration: underline;" disabled>Óra törlése</button>
+                <div>
+                    <button id="edit-class-btn" class="btn-primary" type="button">Óra szerkesztése</button>
+                    <button id="close-manage-btn" class="btn-secondary">Bezárás</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <script src="admin.js?v=20260901-3"></script>
+    <div id="edit-class-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="edit-class-modal-title">
+        <div class="modal-content">
+            <h2 id="edit-class-modal-title">Óra szerkesztése</h2>
+            <div class="form-group"><label for="edit-title">Óra neve</label><input type="text" id="edit-title" required></div>
+            <div class="form-group"><label for="edit-time">Időpont</label><input type="datetime-local" id="edit-time" required></div>
+            <div class="form-group"><label for="edit-capacity">Maximális létszám</label><input type="number" id="edit-capacity" min="1" required></div>
+            <div class="form-group"><label for="edit-instructor">Oktató</label><input type="text" id="edit-instructor"></div>
+            <div class="form-group"><label for="edit-note">Megjegyzés</label><input type="text" id="edit-note"></div>
+            <div class="form-group checkbox-group"><label><input type="checkbox" id="edit-zoom"> Online is elérhető</label></div>
+            <div class="modal-actions">
+                <button id="cancel-edit-class-btn" class="btn-secondary" type="button">Mégsem</button>
+                <button id="submit-edit-class-btn" class="btn-primary" type="button">Változtatások mentése</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="guest-editor-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="guest-editor-title">
+        <div class="modal-content guest-editor-content">
+            <h2 id="guest-editor-title">Vendég szerkesztése</h2>
+            <p id="guest-editor-emails" class="student-emails"></p>
+
+            <section class="guest-editor-section" aria-labelledby="guest-passes-title">
+                <h3 id="guest-passes-title">Bérletek</h3>
+                <div id="guest-pass-list"></div>
+                <div class="guest-editor-actions" style="margin-top: 16px;">
+                    <button id="add-monthly-pass-btn" class="btn-primary" type="button">+ Havi bérlet</button>
+                    <button id="add-eight-visit-pass-btn" class="btn-primary" type="button">+ 8 alkalmas bérlet</button>
+                </div>
+            </section>
+
+            <section class="guest-editor-section" aria-labelledby="guest-email-merge-title">
+                <h3 id="guest-email-merge-title">E-mail-cím hozzákapcsolása</h3>
+                <p class="student-pass">A másik címmel érkező foglalások is ehhez a vendéghez tartoznak majd.</p>
+                <div class="form-group">
+                    <label for="guest-merge-primary-email">Elsődleges e-mail</label>
+                    <input id="guest-merge-primary-email" type="email" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="guest-merge-secondary-email">Másik e-mail-cím</label>
+                    <input id="guest-merge-secondary-email" type="email" placeholder="pelda@email.hu">
+                </div>
+                <button id="guest-merge-emails-btn" class="btn-primary" type="button">E-mail-címek összevonása</button>
+            </section>
+
+            <div class="modal-actions">
+                <button id="close-guest-editor-btn" class="btn-secondary" type="button">Bezárás</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="notifications.js?v=20260902-1"></script>
+    <script src="admin.js?v=20260902-7"></script>
 </body>
 </html>
