@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return response;
     }
 
-    async function initializeApp(token, expiresAt = sessionExpiryFromToken(token)) {
+    async function initializeApp(token, expiresAt = sessionExpiryFromToken(token), announceLogin = false) {
         authToken = token;
         try {
             const response = await fetchAdmin('/admin/verify');
@@ -83,6 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!setSessionStatus(expiresAt)) return;
             await loadCalendar();
             await loadStudentRegistry();
+            if (announceLogin) appDialog.toast('Sikeres belépés.', { variant: 'success' });
         } catch (error) {
             showLogin(error.message);
         }
@@ -110,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error(data.detail || 'A belépés nem sikerült.');
             sessionStorage.setItem('jogaAdminToken', data.access_token);
             sessionStorage.setItem('jogaAdminExpiresAt', String(data.expires_at));
-            await initializeApp(data.access_token, data.expires_at);
+            await initializeApp(data.access_token, data.expires_at, true);
         } catch (error) {
             loginError.textContent = error.message;
             loginError.style.display = 'block';
@@ -121,6 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('logout-btn').addEventListener('click', () => {
         showLogin('Sikeresen kijelentkeztél. A folytatáshoz jelentkezz be újra.');
+        appDialog.toast('Sikeresen kijelentkeztél.', { variant: 'info' });
     });
 
     function formatPass(pass) {
@@ -147,6 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json().catch(() => ({}));
             if (!response.ok) throw new Error(data.detail || 'A bérlet nem adható hozzá.');
             await refreshSelectedGuest();
+            appDialog.toast(`A ${typeText} bérlet sikeresen hozzáadva.`, { variant: 'success' });
         } catch (error) {
             if (!error.sessionExpired) await appDialog.alert(`Hiba történt: ${error.message}`, {
                 title: 'Bérlet kiadása sikertelen',
@@ -310,6 +313,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json().catch(() => ({}));
                 if (!response.ok) throw new Error(data.detail || 'A bérlet nem módosítható.');
                 await refreshSelectedGuest();
+                appDialog.toast('A bérlet adatai sikeresen mentve.', { variant: 'success' });
             } catch (error) {
                 if (!error.sessionExpired) await appDialog.alert(`Hiba történt: ${error.message}`, {
                     title: 'Bérlet módosítása sikertelen',
@@ -335,6 +339,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json().catch(() => ({}));
                 if (!response.ok) throw new Error(data.detail || 'A bérlet nem távolítható el.');
                 await refreshSelectedGuest();
+                appDialog.toast('A bérlet sikeresen eltávolítva.', { variant: 'success' });
             } catch (error) {
                 if (!error.sessionExpired) await appDialog.alert(`Hiba történt: ${error.message}`, {
                     title: 'Bérlet eltávolítása sikertelen',
@@ -357,6 +362,43 @@ document.addEventListener('DOMContentLoaded', () => {
         if (guestId && registryUsers.some(user => user.id === guestId)) openGuestEditor(guestId);
     }
 
+    async function deleteSelectedGuest() {
+        const guest = registryUsers.find(user => user.id === selectedGuestId);
+        if (!guest) return;
+
+        const confirmed = await appDialog.confirm(
+            `Biztosan véglegesen törlöd ${guest.name} vendéget?\n\nA vendég összes e-mail-címe, bérlete és foglalási előzménye is törlődik. Ez a művelet nem vonható vissza.`,
+            {
+                title: 'Vendég végleges törlése',
+                confirmLabel: 'Vendég végleges törlése',
+                variant: 'danger'
+            }
+        );
+        if (!confirmed) return;
+
+        const deleteButton = document.getElementById('delete-guest-btn');
+        deleteButton.disabled = true;
+        try {
+            const response = await fetchAdmin(`/admin/users/${guest.id}/`, { method: 'DELETE' });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(data.detail || 'A vendég nem törölhető.');
+            guestEditorModal.classList.remove('active');
+            document.body.classList.remove('guest-editor-open');
+            selectedGuestId = null;
+            await loadStudentRegistry();
+            appDialog.toast(`${guest.name} és minden hozzá tartozó adat sikeresen törölve.`, {
+                variant: 'success'
+            });
+        } catch (error) {
+            if (!error.sessionExpired) await appDialog.alert(`Hiba történt: ${error.message}`, {
+                title: 'Vendég törlése sikertelen',
+                variant: 'error'
+            });
+        } finally {
+            deleteButton.disabled = false;
+        }
+    }
+
     guestSearch.addEventListener('input', renderStudentRegistry);
     document.getElementById('close-guest-editor-btn').addEventListener('click', () => {
         guestEditorModal.classList.remove('active');
@@ -369,6 +411,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('add-eight-visit-pass-btn').addEventListener('click', () => {
         if (selectedGuestId) grantPass(selectedGuestId, 'eight_visit');
     });
+    document.getElementById('delete-guest-btn').addEventListener('click', deleteSelectedGuest);
     document.getElementById('guest-merge-emails-btn').addEventListener('click', async () => {
         const primaryEmail = document.getElementById('guest-merge-primary-email').value.trim();
         const secondaryInput = document.getElementById('guest-merge-secondary-email');
@@ -394,7 +437,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json().catch(() => ({}));
             if (!response.ok) throw new Error(data.detail || 'Az e-mail-címek nem vonhatók össze.');
             await refreshSelectedGuest();
-            await appDialog.alert(data.message, { title: 'E-mail-címek összevonva', variant: 'success' });
+            appDialog.toast(data.message, { variant: 'success' });
         } catch (error) {
             if (!error.sessionExpired) await appDialog.alert(`Hiba történt: ${error.message}`, {
                 title: 'E-mail-címek összevonása sikertelen',
@@ -516,6 +559,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 const data = await response.json().catch(() => ({}));
                 if (!response.ok) throw new Error(data.detail || 'Az óra nem hozható létre.');
+                appDialog.flashToast('Az óra sikeresen meghirdetve.', { variant: 'success' });
                 location.reload();
             } catch (error) {
                 if (!error.sessionExpired) await appDialog.alert(`Hiba történt: ${error.message}`, {
@@ -557,6 +601,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 const data = await response.json().catch(() => ({}));
                 if (!response.ok) throw new Error(data.detail || 'Az óra nem szerkeszthető.');
+                appDialog.flashToast('Az óra változtatásai sikeresen mentve.', { variant: 'success' });
                 location.reload();
             } catch (error) {
                 if (!error.sessionExpired) await appDialog.alert(`Hiba történt: ${error.message}`, {
@@ -588,6 +633,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const response = await fetchAdmin(`/admin/classes/${currentManageClassId}`, { method: 'DELETE' });
                 const data = await response.json().catch(() => ({}));
                 if (!response.ok) throw new Error(data.detail || 'Az óra nem törölhető.');
+                appDialog.flashToast(`Az óra és ${total} érintett foglalás sikeresen törölve.`, { variant: 'success' });
                 location.reload();
             } catch (error) {
                 if (!error.sessionExpired) await appDialog.alert(`Hiba történt: ${error.message}`, {
@@ -608,6 +654,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const response = await fetchAdmin(`/admin/bookings/${bookingId}`, { method: 'DELETE' });
                 const data = await response.json().catch(() => ({}));
                 if (!response.ok) throw new Error(data.detail || 'A tanítvány nem távolítható el.');
+                appDialog.flashToast('A jelentkező sikeresen eltávolítva.', { variant: 'success' });
                 location.reload();
             } catch (error) {
                 if (!error.sessionExpired) await appDialog.alert(`Hiba történt: ${error.message}`, {
@@ -627,6 +674,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const now = Date.now();
         const events = classes.map(yogaClass => {
             const event = {
                 id: yogaClass.id,
@@ -642,8 +690,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             };
             if (yogaClass.end_time) event.end = yogaClass.end_time;
+            if (new Date(yogaClass.start_time).getTime() <= now) event.classNames = ['past-event'];
             const title = yogaClass.title.toLowerCase();
-            if (title.includes('légzés')) event.classNames = ['breathing-event'];
+            if (title.includes('légzés')) event.classNames = [...(event.classNames || []), 'breathing-event'];
             if (title.includes('aktív mozgás')) {
                 event.classNames = [...(event.classNames || []), 'long-title-event'];
             }

@@ -1,10 +1,9 @@
 from datetime import datetime, timedelta
 
+import models
 from database import SessionLocal
 from migrations import run_migrations
-import models
-from time_utils import APP_TIMEZONE, to_utc_naive
-
+from time_utils import APP_TIMEZONE, to_utc_naive, utc_to_local
 
 # 0 = Hétfő, 1 = Kedd, 2 = Szerda, 3 = Csütörtök, 4 = Péntek
 WEEKLY_TEMPLATE = [
@@ -26,6 +25,54 @@ WEEKLY_TEMPLATE = [
     {"day": 4, "time": "08:15", "title": "Iyengar aktív", "instructor": "Klára", "zoom_available": True, "note": ""},
     {"day": 4, "time": "15:00", "title": "Jin jóga", "instructor": "Timi", "zoom_available": False, "note": ""},
 ]
+
+
+def sync_existing_class_metadata(db) -> int:
+    """A már létrehozott, sablon szerinti órák kiegészítő adatait helyreállítja."""
+    sessions_by_slot = {
+        (session["day"], session["time"], session["title"]): session
+        for session in WEEKLY_TEMPLATE
+    }
+    updated_count = 0
+
+    for yoga_class in db.query(models.YogaClass).all():
+        local_start_time = utc_to_local(yoga_class.start_time)
+        session = sessions_by_slot.get(
+            (
+                local_start_time.weekday(),
+                local_start_time.strftime("%H:%M"),
+                yoga_class.title,
+            )
+        )
+        if not session:
+            continue
+
+        expected_values = {
+            "instructor": session["instructor"] or None,
+            "zoom_available": session["zoom_available"],
+            "note": session["note"] or None,
+        }
+        if any(getattr(yoga_class, field) != value for field, value in expected_values.items()):
+            for field, value in expected_values.items():
+                setattr(yoga_class, field, value)
+            updated_count += 1
+
+    return updated_count
+
+
+def sync_existing_schedule() -> int:
+    """A helyi adatbázisban korrigálja a heti sablonhoz tartozó óraadatokat."""
+    run_migrations()
+    db = SessionLocal()
+    try:
+        updated_count = sync_existing_class_metadata(db)
+        db.commit()
+        return updated_count
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
 
 
 def generate_next_year(days_ahead: int = 365) -> int:

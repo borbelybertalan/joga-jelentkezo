@@ -57,15 +57,13 @@ document.addEventListener('DOMContentLoaded', async function() {
                 throw new Error(data.detail || 'A jelentkezés nem sikerült.');
             }
 
-            const cancellationNote = data.cancel_url
-                ? `\n\nLemondó link (őrizd meg):\n${data.cancel_url}`
-                : '';
             const emailNote = data.email_sent
-                ? '\n\nA visszaigazoló e-mailt elküldtük.'
-                : '';
-            await appDialog.alert(data.message + emailNote + cancellationNote, {
-                title: 'Foglalás rögzítve',
-                variant: 'success'
+                ? ' A visszaigazoló e-mailt elküldtük.'
+                : ' A lemondó linkedet mentsd el.';
+            appDialog.flashToast(data.message + emailNote, {
+                variant: 'success',
+                actionLabel: data.cancel_url ? 'Lemondó link' : undefined,
+                actionHref: data.cancel_url || undefined
             });
             location.reload();
         } catch (error) {
@@ -89,6 +87,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         return;
     }
 
+    const now = Date.now();
     const events = classes.map(yogaClass => {
         const event = {
             id: yogaClass.id,
@@ -104,9 +103,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         };
 
         if (yogaClass.end_time) event.end = yogaClass.end_time;
+        if (new Date(yogaClass.start_time).getTime() <= now) event.classNames = ['past-event'];
 
         const title = yogaClass.title.toLowerCase();
-        if (title.includes('légzés')) event.classNames = ['breathing-event'];
+        if (title.includes('légzés')) event.classNames = [...(event.classNames || []), 'breathing-event'];
         // A hosszabb című órát a CSS az eredeti dobozmagasságon belül igazítja.
         if (title.includes('aktív mozgás')) {
             event.classNames = [...(event.classNames || []), 'long-title-event'];

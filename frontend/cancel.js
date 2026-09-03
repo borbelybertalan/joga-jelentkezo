@@ -42,6 +42,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const result = await response.json().catch(() => ({}));
             if (!response.ok) throw new Error(result.detail || 'A lemondás nem sikerült.');
             details.textContent = result.message;
+            appDialog.toast(result.message, { variant: 'success' });
         } catch (error) {
             details.textContent = error.message;
             confirmButton.disabled = false;

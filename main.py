@@ -357,6 +357,37 @@ def list_users(db: Session = Depends(get_db), admin: str = Depends(verify_admin)
     ]
 
 
+@app.delete("/admin/users/{user_id}/")
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    admin: str = Depends(verify_admin),
+):
+    """Véglegesen törli a vendéget és minden hozzá kapcsolódó személyes adatot."""
+    try:
+        _begin_write_transaction(db)
+        user = db.get(models.User, user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="A vendég nem található.")
+
+        # Az aktív helyek felszabadításakor előreléptetjük a várólistát, ugyanúgy,
+        # mintha a vendég lemondta volna az órát. A törléssel együtt az összes
+        # foglalás, bérlet és e-mail-alias is véglegesen eltűnik.
+        for booking in list(user.bookings):
+            if booking.status == "active":
+                _cancel_booking_in_transaction(db, booking, respect_deadline=False)
+
+        db.delete(user)
+        db.commit()
+        return {"message": "A vendég és az összes hozzá tartozó adat véglegesen törölve."}
+    except HTTPException:
+        db.rollback()
+        raise
+    except (IntegrityError, OperationalError):
+        db.rollback()
+        raise HTTPException(status_code=503, detail="A vendéget most nem lehet törölni. Próbáld újra.")
+
+
 @app.post("/admin/users/{user_id}/passes/", status_code=status.HTTP_201_CREATED)
 def grant_pass(
     user_id: int,

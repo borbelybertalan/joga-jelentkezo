@@ -1,6 +1,7 @@
 (function () {
     let resolveDialog = null;
     let lastFocusedElement = null;
+    const FLASH_TOAST_KEY = 'jogaFlashToast';
 
     function ensureDialog() {
         let overlay = document.getElementById('app-dialog-overlay');
@@ -74,6 +75,58 @@
         });
     }
 
+    function ensureToastContainer() {
+        let container = document.getElementById('app-toast-container');
+        if (container) return container;
+        container = document.createElement('div');
+        container.id = 'app-toast-container';
+        container.className = 'app-toast-container';
+        container.setAttribute('aria-live', 'polite');
+        container.setAttribute('aria-atomic', 'true');
+        document.body.append(container);
+        return container;
+    }
+
+    function toast(message, options = {}) {
+        const container = ensureToastContainer();
+        const notification = document.createElement('div');
+        const variant = options.variant || 'success';
+        notification.className = `app-toast app-toast-${variant}`;
+        notification.setAttribute('role', 'status');
+
+        const text = document.createElement('span');
+        text.className = 'app-toast-message';
+        text.textContent = message;
+        notification.append(text);
+
+        if (options.actionLabel && options.actionHref) {
+            const action = document.createElement('a');
+            action.className = 'app-toast-action';
+            action.textContent = options.actionLabel;
+            action.href = options.actionHref;
+            notification.append(action);
+        }
+
+        container.append(notification);
+        window.setTimeout(() => notification.classList.add('is-leaving'), 3000);
+        window.setTimeout(() => notification.remove(), 3400);
+    }
+
+    function flashToast(message, options = {}) {
+        sessionStorage.setItem(FLASH_TOAST_KEY, JSON.stringify({ message, options }));
+    }
+
+    function restoreFlashToast() {
+        try {
+            const flash = JSON.parse(sessionStorage.getItem(FLASH_TOAST_KEY));
+            if (!flash || typeof flash.message !== 'string') return;
+            sessionStorage.removeItem(FLASH_TOAST_KEY);
+            toast(flash.message, flash.options || {});
+        } catch {
+            sessionStorage.removeItem(FLASH_TOAST_KEY);
+        }
+    }
+
     window.appDialog = {
         alert(message, options = {}) {
             return openDialog({
@@ -92,6 +145,10 @@
                 needsConfirmation: true,
                 variant: options.variant || 'default'
             });
-        }
+        },
+        toast,
+        flashToast
     };
+
+    restoreFlashToast();
 }());

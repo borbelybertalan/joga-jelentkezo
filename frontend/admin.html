@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Oktatói Adminisztráció</title>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
-    <link rel="stylesheet" href="style.css?v=20260902-4">
+    <link rel="stylesheet" href="style.css?v=20260903-1">
     <style>
         .admin-student-list { list-style-type: none; padding-left: 0; margin-top: 10px; }
         .admin-student-list li { padding: 8px 0; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
@@ -30,6 +30,9 @@
         .guest-editor-section { border-top: 1px solid var(--border-color); margin-top: 24px; padding-top: 20px; }
         .guest-editor-section h3 { margin-top: 0; font-size: 1.1rem; }
         .guest-editor-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+        .btn-danger { background: #b65b4d; }
+        .btn-danger:hover { background: #98493e; }
+        .guest-delete-warning { color: #8b4b41; line-height: 1.55; }
         .admin-session-status { color: var(--text-muted); font-size: .9rem; margin: 0 0 8px; text-align: right; }
         .session-notice { color: #9a5d00; display: none; margin: 15px 0 0; font-size: .9rem; }
         .class-delete-summary { color: var(--text-muted); line-height: 1.5; margin: 18px 0 0; padding: 12px; background: var(--bg-color); border-radius: 8px; }
@@ -150,13 +153,19 @@
                 <button id="guest-merge-emails-btn" class="btn-primary" type="button">E-mail-címek összevonása</button>
             </section>
 
+            <section class="guest-editor-section" aria-labelledby="guest-delete-title">
+                <h3 id="guest-delete-title">Vendég végleges törlése</h3>
+                <p class="guest-delete-warning">A vendég összes e-mail-címe, bérlete és foglalási előzménye véglegesen törlődik. Az aktív foglalásai által felszabaduló helyet a várólista első tagja kapja meg.</p>
+                <button id="delete-guest-btn" class="btn-danger" type="button">Vendég végleges törlése</button>
+            </section>
+
             <div class="modal-actions">
                 <button id="close-guest-editor-btn" class="btn-secondary" type="button">Bezárás</button>
             </div>
         </div>
     </div>
 
-    <script src="notifications.js?v=20260902-1"></script>
-    <script src="admin.js?v=20260902-7"></script>
+    <script src="notifications.js?v=20260903-1"></script>
+    <script src="admin.js?v=20260903-1"></script>
 </body>
 </html>

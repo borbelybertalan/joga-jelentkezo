@@ -1,6 +1,6 @@
 # Jóga foglaló – V1 teendőlista
 
-**Állapot:** `Kész: 23 / 59`  
+**Állapot:** `Kész: 26 / 61`
 **Cél:** éles, vendégek által önállóan használható foglalási oldal.
 
 ## Prioritások
@@ -24,9 +24,8 @@
 - [x] **[Codex]** A visszaigazoló e-mailben jelenítsd meg a vendég bérletének típusát, lejáratát és – 8 alkalmas bérletnél – fennmaradó alkalmait.
 - [ ] **[Codex]** Küldj e-mailes értesítést a várólistára kerülésről és a felszabadult helyről.
 - [ ] **[Codex]** Ellenőrizd az e-mail-cím formátumát, és vezess be e-mailes megerősítést, hogy a megadott cím valóban a jelentkezőé legyen.
-- [ ] **[Codex]** Jeleníts meg egységes, egyértelmű siker- és hibaüzeneteket a foglalási folyamat minden lépésében.
-- [ ] **[Codex]** A már megtartott órákat szürkén jelenítsd meg a naptárban.
-- [ ] **[Codex]** Megtartott órára kattintáskor csak azt az üzenetet mutasd, hogy arra az órára már nem lehet jelentkezni; ne nyisd meg a foglalási űrlapot.
+- [x] **[Codex]** Jeleníts meg egységes, egyértelmű siker- és hibaüzeneteket a foglalási folyamat minden lépésében.
+- [x] **[Codex]** A már megtartott órákat szürkén jelenítsd meg a naptárban.
 
 ### Bérletek és vendégazonosítás
 
@@ -44,6 +43,7 @@
 - [x] **[Codex]** Egy órára kattintó admin számára jelezd minden jelentkezőnél, van-e aktív bérlete.
 - [x] **[Codex]** Aktív bérletnél mutasd az adminnak a bérlet típusát, lejárati dátumát és – 8 alkalmas bérletnél – a fennmaradó alkalmakat.
 - [x] **[Codex]** Írj teszteket a bérlet lejáratára, a 8 alkalom nyilvántartására és az e-mail-összevonásra.
+- [x] **[Codex]** Lehessen egy vendéget véglegesen törölni a vendéglistából az összes e-mail-címével, bérletével és foglalási előzményével együtt.
 
 ### Adminisztráció
 
@@ -64,6 +64,7 @@
 - [ ] Készíts foglalási feltételeket, beleértve a lemondási határidőt és a várólista szabályait.
 - [ ] Vezesd be a szükséges adatkezelési hozzájárulást a foglalási űrlapon.
 - [ ] Határozd meg és dokumentáld a személyes adatok megőrzési, exportálási és törlési rendjét.
+- [ ] **[Codex]** A jóváhagyott megőrzési rend szerint automatikusan töröld vagy anonimizáld az inaktív vendégek foglalási, bérlet- és e-mail-adatait; kezeld külön a mentések és számlázási bizonylatok megőrzését.
 
 ## P1 – Röviddel indulás után
 

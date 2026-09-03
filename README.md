@@ -33,3 +33,9 @@ Az órarend feltöltése a következő 365 napra idempotensen futtatható:
 ```sh
 python populate_db.py
 ```
+
+Ha egy már feltöltött, a heti sablonhoz tartozó óra oktató-, Zoom- vagy megjegyzésadata eltér, az alábbi parancs csak ezeket a kiegészítő adatokat igazítja a sablonhoz:
+
+```sh
+python -c "from populate_db import sync_existing_schedule; print(sync_existing_schedule())"
+```

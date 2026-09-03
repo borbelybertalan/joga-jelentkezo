@@ -271,6 +271,87 @@ class SecurityRegressionTests(unittest.TestCase):
         finally:
             db.close()
 
+    def test_schedule_sync_restores_instructor_zoom_and_note_from_template(self):
+        import populate_db
+
+        db = SessionLocal()
+        try:
+            db.add_all(
+                [
+                    models.YogaClass(
+                        title="Iyengar jóga - diák",
+                        start_time=main.to_utc_naive(datetime(2026, 12, 1, 15, 15)),
+                        max_capacity=15,
+                        instructor="Klára",
+                        zoom_available=True,
+                        note=None,
+                    ),
+                    models.YogaClass(
+                        title="Gerincterápia",
+                        start_time=main.to_utc_naive(datetime(2026, 12, 3, 10, 0)),
+                        max_capacity=15,
+                        instructor=None,
+                        zoom_available=False,
+                        note=None,
+                    ),
+                    models.YogaClass(
+                        title="Légzés",
+                        start_time=main.to_utc_naive(datetime(2026, 12, 4, 6, 20)),
+                        max_capacity=15,
+                        instructor="Téves oktató",
+                        zoom_available=True,
+                        note="Téves megjegyzés",
+                    ),
+                ]
+            )
+            db.commit()
+
+            self.assertEqual(populate_db.sync_existing_class_metadata(db), 3)
+            db.commit()
+
+            student_class = db.query(models.YogaClass).filter_by(title="Iyengar jóga - diák").one()
+            therapy_class = db.query(models.YogaClass).filter_by(title="Gerincterápia").one()
+            breathing_class = db.query(models.YogaClass).filter_by(title="Légzés").one()
+            self.assertFalse(student_class.zoom_available)
+            self.assertEqual(student_class.note, "*")
+            self.assertEqual(therapy_class.instructor, "Klára")
+            self.assertTrue(therapy_class.zoom_available)
+            self.assertEqual(therapy_class.note, "Szükséges otthoni kötélfal!")
+            self.assertIsNone(breathing_class.instructor)
+            self.assertFalse(breathing_class.zoom_available)
+            self.assertIsNone(breathing_class.note)
+        finally:
+            db.close()
+
+    def test_admin_can_permanently_delete_guest_and_promote_waitlist(self):
+        class_id = self.create_class(capacity=1)
+        self.book(class_id, "Törlendő Vendég", "torlendo@example.test")
+        self.book(class_id, "Várólistás Vendég", "varolistas@example.test")
+
+        db = SessionLocal()
+        try:
+            user = db.query(models.User).filter_by(email="torlendo@example.test").one()
+            user_id = user.id
+            db.add(models.UserEmailAlias(user_id=user_id, email="masodlagos@example.test"))
+            db.commit()
+            main.grant_pass(user_id, main.PassGrantRequest(pass_type="monthly"), db, "test-admin")
+
+            result = main.delete_user(user_id, db, "test-admin")
+            self.assertIn("véglegesen törölve", result["message"])
+            self.assertEqual(db.query(models.User).filter_by(id=user_id).count(), 0)
+            self.assertEqual(db.query(models.UserEmailAlias).filter_by(user_id=user_id).count(), 0)
+            self.assertEqual(db.query(models.Pass).filter_by(user_id=user_id).count(), 0)
+            self.assertEqual(db.query(models.Booking).filter_by(user_id=user_id).count(), 0)
+            self.assertEqual(
+                db.query(models.Booking)
+                .filter_by(class_id=class_id, user_id=main._find_user_by_email(db, "varolistas@example.test").id)
+                .one()
+                .status,
+                "active",
+            )
+        finally:
+            db.close()
+
     def test_admin_can_edit_class_but_not_below_active_bookings(self):
         class_id = self.create_class(capacity=2)
         self.book(class_id, "Első Jelentkező", "elsojelentkezo@example.test")
